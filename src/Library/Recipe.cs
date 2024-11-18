@@ -1,23 +1,29 @@
+//-------------------------------------------------------------------------
+// <copyright file="Recipe.cs" company="Universidad Católica del Uruguay">
+// Copyright (c) Programación II. Derechos reservados.
+// </copyright>
+//-------------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace Full_GRASP_And_SOLID
 {
-    public class Recipe : IRecipeContent, TimerClient
+    public class Recipe : IRecipeContent // Modificado por DIP
     {
+        // Cambiado por OCP
         private IList<BaseStep> steps = new List<BaseStep>();
 
-        private bool cooked = false;
-        private CountdownTimer countdownTimer;
-        private int cookTimeInMilliseconds;
-
-        public Product FinalProduct { get; set; }
-
-        public bool Cooked
+        public Recipe()
         {
-            get { return this.cooked; }
+            Cooked = false;
         }
+
+        public int CookTime { get; set; }
+        public bool Cooked { get; set; }
+        public CountdownTimerForRecipe RecipeTimer { get; set; }
+        private CountdownTimer _countdownTimer;
+        public Product FinalProduct { get; set; }
 
         // Agregado por Creator
         public void AddStep(Product input, double quantity, Equipment equipment, int time)
@@ -47,10 +53,13 @@ namespace Full_GRASP_And_SOLID
                 result = result + step.GetTextToPrint() + "\n";
             }
 
+            // Agregado por Expert
             result = result + $"Costo de producción: {this.GetProductionCost()}";
+
             return result;
         }
 
+        // Agregado por Expert
         public double GetProductionCost()
         {
             double result = 0;
@@ -63,36 +72,22 @@ namespace Full_GRASP_And_SOLID
             return result;
         }
 
-        // Método para obtener el tiempo total de cocción
-        public int GetCookTime()
+        public void GetCookTime(IList<BaseStep> recipeSteps)
         {
-            int totalCookTime = 0;
-
-            foreach (BaseStep step in this.steps)
+            int cookTime = 0;
+            foreach (var varStep in recipeSteps)
             {
-                totalCookTime += step.Time;
+                cookTime += varStep.Time;
             }
 
-            this.cookTimeInMilliseconds = totalCookTime * 1000;
-            return totalCookTime;
+            this.CookTime = cookTime * 1000;
         }
 
-        // Método para cocinar la receta
         public void Cook()
         {
-            if (this.cooked)
-            {
-                throw new InvalidOperationException("La receta ya está cocinada.");
-            }
-            this.countdownTimer = new CountdownTimer();
-            this.countdownTimer.Register(this.cookTimeInMilliseconds, this);
-        }
-
-        // Uso de CountDownTimer
-        public void TimeOut()
-        {
-            this.cooked = true;
-            Console.WriteLine("La receta ahora está cocinada.");
+            this.RecipeTimer = new CountdownTimerForRecipe(this._countdownTimer);
+            this.RecipeTimer.RegisterAdapter(this.CookTime, this);
+            this.Cooked = true;
         }
     }
 }
